@@ -235,7 +235,7 @@ void calibrateMPU(MPU9255_t* mpu) {
 
   uint8_t data[12]; //accelerometer and gyro x, y, z data
   unint_t ii, packetCountn, fifoCount;
-  uint32_t gyro_bias[3] = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
+  int32_t gyro_bias[3] = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
 
   //reset
   I2C_WriteByte(MPU9255_ADDR, PWR_MGMT_1, 0x80);
@@ -261,8 +261,8 @@ void calibrateMPU(MPU9255_t* mpu) {
   I2C_WriteByte(MPU9255_ADDR, GYRO_CONFIG, 0x00); //gyro set to fullscale 250 degrees per sec, max sensitivity
   I2C_WriteByte(MPU9255_ADDR, ACCEL_CONFIG, 0x00); //set accelerometer to fullscale to 2 g, max sensitivity
 
-  uint16_t gyroSensitivity = 131; // 131 LSB/degrees/sec
-  uint16_t accelSensitivity = 16384; // 16384 LSB/g
+  uint16_t gyroSensitivity = 16; // 131 LSB/degrees/sec
+  uint16_t accelSensitivity = 2048; // 16384 LSB/g
 
   //config fifo to capture accelerometer and gyro data
   I2C_WriteByte(MPU9255_ADDR, USER_CTRL, 0x40);
@@ -310,7 +310,59 @@ void calibrateMPU(MPU9255_t* mpu) {
   data[4] = (-gyro_bias[2]/4  >> 8) & 0xFF;
   data[5] = (-gyro_bias[2]/4)       & 0xFF;
 
-  
+  I2C_WriteByte(MPU9255_ADDR, XG_OFFSET_H, data[0]);
+  I2C_WriteByte(MPU9255_ADDR, XG_OFFSET_L, data[1]);
+  I2C_WriteByte(MPU9255_ADDR, YG_OFFSET_H, data[2]);
+  I2C_WriteByte(MPU9255_ADDR, YG_OFFSET_L, data[3]);
+  I2C_WriteByte(MPU9255_ADDR, ZG_OFFSET_H, data[4]);
+  I2C_WriteByte(MPU9255_ADDR, ZG_OFFSET_L, data[5]);
+
+  gyroBias[0] = (float) gyro_bias[0] / (float) gyroSensitivity;
+  gyroBias[1] = (float) gyro_bias[1] / (float) gyroSensitivity;
+  gyroBias[2] = (float) gyro_bias[2] / (float) gyroSensitivity;
+
+  int32_t accel_bias_reg[3] = {0, 0, 0};
+  I2C_ReadBytes(MPU9255_ADDR, XA_OFFSET_H, 2, &data[0]);
+  accel_bias_reg[0] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+  I2C_ReadBytes(MPU9255_ADDR, YA_OFFSET_H, 2, &data[0]);
+  accel_bias_reg[1] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+  I2C_ReadBytes(MPU9255_ADDR, ZA_OFFSET_H, 2, &data[0]);
+  accel_bias_reg[2] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+
+  uint32_t mask = 1ul;
+  uint8_t mask_bit[3] = {0, 0, 0};
+
+  for(ii = 0; ii < 3; ii++){
+      if((accel_bias_reg[ii] & mask))
+        mask_bit[ii] = 0x01;
+  }
+
+  // Construct total accelerometer bias, including calculated average accelerometer bias from above
+ accel_bias_reg[0] -= (accel_bias[0]/8); // Subtract calculated averaged accelerometer bias scaled to 2048 LSB/g (16 g full scale)
+ accel_bias_reg[1] -= (accel_bias[1]/8);
+ accel_bias_reg[2] -= (accel_bias[2]/8);
+
+ data[0] = (accel_bias_reg[0] >> 8) & 0xFF;
+ data[1] = (accel_bias_reg[0])      & 0xFF;
+ data[1] = data[1] | mask_bit[0]; // preserve temperature compensation bit when writing back to accelerometer bias registers
+ data[2] = (accel_bias_reg[1] >> 8) & 0xFF;
+ data[3] = (accel_bias_reg[1])      & 0xFF;
+ data[3] = data[3] | mask_bit[1]; // preserve temperature compensation bit when writing back to accelerometer bias registers
+ data[4] = (accel_bias_reg[2] >> 8) & 0xFF;
+ data[5] = (accel_bias_reg[2])      & 0xFF;
+ data[5] = data[5] | mask_bit[2]; // preserve temperature compensation bit when writing back to accelerometer bias registers
+
+ I2C_WriteByte(MPU9255_ADDR, XA_OFFSET_H, data[0]);
+ I2C_WriteByte(MPU9255_ADDR, XA_OFFSET_L, data[1]);
+ I2C_WriteByte(MPU9255_ADDR, YA_OFFSET_H, data[2]);
+ I2C_WriteByte(MPU9255_ADDR, YA_OFFSET_L, data[3]);
+ I2C_WriteByte(MPU9255_ADDR, ZA_OFFSET_H, data[4]);
+ I2C_WriteByte(MPU9255_ADDR, ZA_OFFSET_L, data[5]);
+
+ accelBias[0] = (float)accel_bias[0]/(float)accelsensitivity;
+ accelBias[1] = (float)accel_bias[1]/(float)accelsensitivity;
+ accelBias[2] = (float)accel_bias[2]/(float)accelsensitivity;
+
 }
 
 void MPU9255_ReadAccel(MPU9255_t* mpu) {
