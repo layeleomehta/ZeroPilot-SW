@@ -25,12 +25,12 @@
 #define AK8963_ASAZ         0x12
 
 /* MPU9250 data */
-#define SELF_TEST_X_GYRO    0x00                  
-#define SELF_TEST_Y_GYRO    0x01                                                                          
+#define SELF_TEST_X_GYRO    0x00
+#define SELF_TEST_Y_GYRO    0x01
 #define SELF_TEST_Z_GYRO    0x02
 
 #define SELF_TEST_X_ACCEL   0x0D
-#define SELF_TEST_Y_ACCEL   0x0E    
+#define SELF_TEST_Y_ACCEL   0x0E
 #define SELF_TEST_Z_ACCEL   0x0F
 
 // #define SELF_TEST_A         0x10
@@ -46,15 +46,15 @@
 #define GYRO_CONFIG         0x1B
 #define ACCEL_CONFIG        0x1C
 #define ACCEL_CONFIG2       0x1D
-#define LP_ACCEL_ODR        0x1E   
-#define WOM_THR             0x1F   
+#define LP_ACCEL_ODR        0x1E
+#define WOM_THR             0x1F
 
 // #define MOT_DUR             0x20
 // #define ZMOT_THR            0x21
 // #define ZRMOT_DUR           0x22
 
 #define FIFO_EN             0x23
-#define I2C_MST_CTRL        0x24   
+#define I2C_MST_CTRL        0x24
 #define I2C_SLV0_ADDR       0x25
 #define I2C_SLV0_REG        0x26
 #define I2C_SLV0_CTRL       0x27
@@ -130,7 +130,7 @@
 // #define DMP_RW_PNT          0x6E  // Set read/write pointer to a specific start address in specified DMP bank
 // #define DMP_REG             0x6F  // Register in DMP from which to read or to which to write
 // #define DMP_REG_1           0x70
-// #define DMP_REG_2           0x71 
+// #define DMP_REG_2           0x71
 #define FIFO_COUNTH         0x72
 #define FIFO_COUNTL         0x73
 #define FIFO_R_W            0x74
@@ -230,6 +230,89 @@ HAL_StatusTypeDef MPU9255_Init(MPU9255_t *mpu) {
     return HAL_OK;
 }
 
+void calibrateMPU(MPU9255_t* mpu) {
+  //https://github.com/sparkfun/MPU-9250_Breakout/blob/master/Libraries/Arduino/src/MPU9250.cpp
+
+  uint8_t data[12]; //accelerometer and gyro x, y, z data
+  unint_t ii, packetCountn, fifoCount;
+  uint32_t gyro_bias[3] = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
+
+  //reset
+  I2C_WriteByte(MPU9255_ADDR, PWR_MGMT_1, 0x80);
+  HAL_Delay(100);
+
+  //get time source
+  I2C_WriteByte(MPU9255_ADDR, PWR_MGMT_1, 0x01);
+  I2C_WriteByte(MPU9255_ADDR, PWR_MGMT_2, 0x00);
+  HAL_Delay(200);
+
+  //configure device for bias calculation
+  I2C_WriteByte(MPU9255_ADDR, INT_ENABLE, 0x00);
+  I2C_WriteByte(MPU9255_ADDR, FIFO_EN, 0x00);
+  I2C_WriteByte(MPU9255_ADDR, PWR_MGMT_1, 0x00);
+  I2C_WriteByte(MPU9255_ADDR, I2C_MST_CTRL, 0x00);
+  I2C_WriteByte(MPU9255_ADDR, USER_CTRL, 0x00);
+  I2C_WriteByte(MPU9255_ADDR, USER_CTRL, 0x0C);
+  HAL_Delay(15);
+
+  //config gyro and accelerometer for bias calibration
+  I2C_WriteByte(MPU9255_ADDR, CONFIG, 0x01); //low pass filter set to 188Hz
+  I2C_WriteByte(MPU9255_ADDR, SMPLRT_DIV, 0x00); //sample rate set to 1kHz
+  I2C_WriteByte(MPU9255_ADDR, GYRO_CONFIG, 0x00); //gyro set to fullscale 250 degrees per sec, max sensitivity
+  I2C_WriteByte(MPU9255_ADDR, ACCEL_CONFIG, 0x00); //set accelerometer to fullscale to 2 g, max sensitivity
+
+  uint16_t gyroSensitivity = 131; // 131 LSB/degrees/sec
+  uint16_t accelSensitivity = 16384; // 16384 LSB/g
+
+  //config fifo to capture accelerometer and gyro data
+  I2C_WriteByte(MPU9255_ADDR, USER_CTRL, 0x40);
+  I2C_WriteByte(MPU9255_ADDR, FIFO_EN, 0x78);
+  HAL_Delay(40); //get 40 samples in 40 ms = 480 bytes
+
+  //turn off fifo sensor read
+  I2C_WriteByte(MPU9255_ADDR, FIFO_EN, 0x00);
+  I2C_ReadBytes(MPU9255_ADDR, FIFO_COUNTH, 2, data[1]);
+  fifoCount = ((uint16_t)data[0] << 8 | data[1]);
+  packetCount = fifoCount/12;
+
+  for (ii = 0; ii < packetCount; ii++){
+    int16_t accel_temp[3] = {0, 0, 0}, gyro_temp[3] = {0, 0, 0};
+    accel_temp[0] = (int16_t)(((int16_t)data[0] << 8) | data[1]);
+    accel_temp[1] = (int16_t)(((int16_t)data[2] << 8) | data[3]);
+    accel_temp[2] = (int16_t)(((int16_t)data[4] << 8) | data[5]);
+    gyro_temp[0] = (int16_t)(((int16_t)data[6] << 8) | data[8]);
+    gyro_temp[1] = (int16_t)(((int16_t)data[8] << 8) | data[9]);
+    gyro_temp[2] = (int16_t)(((int16_t)data[10] << 8) | data[11]);
+
+    accel_bias[0] += (int32_t) accel_temp[0];
+    accel_bias[1] += (int32_t) accel_temp[1];
+    accel_bias[2] += (int32_t) accel_temp[2];
+    gyro_bias[0] += (int32_t) gyro_temp[0];
+    gyro_bias[1] += (int32_t) gyro_temp[1];
+    gyro_bias[2] += (int32_t) gyro_temp[2];
+  }
+  accel_bias[0] /= (int32_t) packetCount;
+  accel_bias[1] /= (int32_t) packetCount;
+  accel_bias[2] /= (int32_t) packetCount;
+  gyro_bias[0] /= (int32_t) packetCount;
+  gyro_bias[1] /= (int32_t) packetCount;
+  gyro_bias[2] /= (int32_t) packetCount;
+
+  if(accel_bias[2] > 0L) //remove gravity from accelerometer z axis calibration
+    accel_bias[2] -= (int32_t) accelSensitivity;
+  else
+    accel_bias[2] += (int32_t) accelSensitivity;
+
+  data[0] = (-gyro_bias[0]/4  >> 8) & 0xFF; // Divide by 4 to get 32.9 LSB per deg/s to conform to expected bias input format
+  data[1] = (-gyro_bias[0]/4)       & 0xFF; // Biases are additive, so change sign on calculated average gyro biases
+  data[2] = (-gyro_bias[1]/4  >> 8) & 0xFF;
+  data[3] = (-gyro_bias[1]/4)       & 0xFF;
+  data[4] = (-gyro_bias[2]/4  >> 8) & 0xFF;
+  data[5] = (-gyro_bias[2]/4)       & 0xFF;
+
+  
+}
+
 void MPU9255_ReadAccel(MPU9255_t* mpu) {
     uint8_t data[6];
 
@@ -269,16 +352,16 @@ void MPU9255_ReadMag(MPU9255_t* mpu) {
 
         if (!(data[6] & 0x08)) {
             /* DO NOT CHANGE THESE. MPU9255 REFERECE FRAME IS WEIRD */
-            mpu->My_raw = -BYTES2WORD_LE(data); 
+            mpu->My_raw = -BYTES2WORD_LE(data);
             mpu->Mx_raw = BYTES2WORD_LE(data + 2);
             mpu->Mz_raw = -BYTES2WORD_LE(data + 4);
-            // yes x and y are swapped. yes that's on purpose. 
+            // yes x and y are swapped. yes that's on purpose.
 
             mpu->Mx = mpu->Mx_raw * mpu->Mx_adj * mpu->M_res;
             mpu->My = mpu->My_raw * mpu->My_adj * mpu->M_res;
             mpu->Mz = mpu->Mz_raw * mpu->Mz_adj * mpu->M_res;
         }
-    } 
+    }
 }
 
 int16_t MPU9255_ReadTemp() {

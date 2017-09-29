@@ -63,6 +63,8 @@
 #include "debug.h"
 #include "eeprom.h"
 #include "Interchip_A.h"
+#include "altimeter.h"
+#include "mpu9255.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -136,15 +138,17 @@ int main(void)
 
   EEPROM_Init();
 
-  Interchip_StoA_Packet* dataRX = malloc(sizeof(Interchip_StoA_Packet));
-  Interchip_AtoS_Packet* dataTX = malloc(sizeof(Interchip_AtoS_Packet));
-  interchipInit(dataTX, dataRX);
+  MPU9255_t mpu;
+  MPU9255_Init(&mpu);
 
-  while(1){
-
-    Interchip_Update();
-    HAL_Delay(2);
-    debug("PWM[0]: %d", dataRX->PWM[0]);
+  for (;;) {
+    MPU9255_ReadAccel(&mpu);
+    MPU9255_ReadGyro(&mpu);
+    MPU9255_ReadMag(&mpu);
+    debug("Acc: X: %.2f,\tY: %.2f,\tZ: %.2f", mpu.Ax, mpu.Ay, mpu.Az);
+    debug("Gyr: X: %.2f,\tY: %.2f,\tZ: %.2f", mpu.Gx, mpu.Gy, mpu.Gz);
+    debug("Mag: X: %.2f,\tY: %.2f,\tZ: %.2f", mpu.Mx, mpu.My, mpu.Mz);
+    HAL_Delay(100);
   }
   /* USER CODE END 2 */
 
