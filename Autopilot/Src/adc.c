@@ -69,16 +69,15 @@
   #define AIRSPEED_HISTORY 20
   // Source voltage for the airspeed sensor
   #define VSOURCE 5.0f
-
   // Airspeed voltage divider ratio
   #define ASPD_RATIO (22f / 33)
 
 // Battery Constants
   #define V_SAMPLE_COUNT 20
   // External battery voltage divider ratio
-  #define EXTERN_BATT_RATIO (22f / 172)
+  #define EXT_BATT_RATIO (22f / 172)
   // Battery voltage divider ratio
-  #define BATT_RATIO (22f / 172)
+  #define MAIN_BATT_RATIO (22f / 172)
 
 // ADC -> voltage -> percentage -> pressure, then multiplied by some factors for Bernoulli
 static float v_sc = ((AREF_RATIO / ASPD_RATIO) / VSOURCE) * 0.2f  * 1666.67f; // derived from the internal ADC conversions and the airspeed sensor datasheet
