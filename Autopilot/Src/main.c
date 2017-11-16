@@ -140,12 +140,15 @@ int main(void)
 
   MPU9255_t mpu;
   MPU9255_Init(&mpu);
+
+  //MPU calibration
   float gyroBias[3] = {0}, accelBias[3] = {0}, magBias[3] = {0}, magScale[3] = {0};
   accelCal(accelBias);
   gyroCal(&mpu, gyroBias);
   magCal(&mpu, magBias, magScale);
 
   for (;;) {
+    //MPU calibration debugging
     MPU9255_ReadAccel(&mpu);
     MPU9255_ReadGyro(&mpu);
     MPU9255_ReadMag(&mpu);
