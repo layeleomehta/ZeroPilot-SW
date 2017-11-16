@@ -140,15 +140,21 @@ int main(void)
 
   MPU9255_t mpu;
   MPU9255_Init(&mpu);
+  float gyroBias[3] = {0}, accelBias[3] = {0}, magBias[3] = {0}, magScale[3] = {0};
+  accelCal(accelBias);
+  gyroCal(&mpu, gyroBias);
+  magCal(&mpu, magBias, magScale);
 
   for (;;) {
     MPU9255_ReadAccel(&mpu);
     MPU9255_ReadGyro(&mpu);
     MPU9255_ReadMag(&mpu);
-    debug("Acc: X: %.2f,\tY: %.2f,\tZ: %.2f", mpu.Ax, mpu.Ay, mpu.Az);
-    debug("Gyr: X: %.2f,\tY: %.2f,\tZ: %.2f", mpu.Gx, mpu.Gy, mpu.Gz);
-    debug("Mag: X: %.2f,\tY: %.2f,\tZ: %.2f", mpu.Mx, mpu.My, mpu.Mz);
+    debug("Acc: X: %.2f,\tY: %.2f,\tZ: %.2f", mpu.Ax - accelBias[0], mpu.Ay - accelBias[1], mpu.Az - accelBias[2]);
+    debug("Gyr: X: %.2f,\tY: %.2f,\tZ: %.2f", mpu.Gx - gyroBias[0], mpu.Gy - gyroBias[1], mpu.Gz - gyroBias[2]);
+    debug("Mag: X: %.2f,\tY: %.2f,\tZ: %.2f", (mpu.Mx + (mpu.Mx * magScale[0])) - magBias[0], mpu.My + (mpu.My * magScale[1]) - magBias[1], mpu.Mz + (mpu.Mz * magScale[2]) - magBias[2]);
     HAL_Delay(100);
+
+    debug("Gyro bias: %f, %f, %f Accel Bias: %f, %f, %f", gyroBias[0], gyroBias[1], gyroBias[2], accelBias[0], accelBias[1], accelBias[2]);
   }
   /* USER CODE END 2 */
 

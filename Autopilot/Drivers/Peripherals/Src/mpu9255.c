@@ -1,5 +1,6 @@
 #include "mpu9255.h"
 #include "debug.h"
+#include <math.h>
 
 #define MPU9255_ADDR 0xD0
 #define AK8963_ADDR (0x0C << 1)
@@ -10,12 +11,12 @@
 #define WHO_AM_I_AK8963     0x00 // Result = 0x48
 #define INFO                0x01
 #define AK8963_ST1          0x02
-#define AK8963_XOUT_L	    0x03
-#define AK8963_XOUT_H	    0x04
-#define AK8963_YOUT_L	    0x05
-#define AK8963_YOUT_H	    0x06
-#define AK8963_ZOUT_L	    0x07
-#define AK8963_ZOUT_H	    0x08
+#define AK8963_XOUT_L	      0x03
+#define AK8963_XOUT_H	      0x04
+#define AK8963_YOUT_L	      0x05
+#define AK8963_YOUT_H	      0x06
+#define AK8963_ZOUT_L	      0x07
+#define AK8963_ZOUT_H	      0x08
 #define AK8963_ST2          0x09
 #define AK8963_CNTL         0x0A
 #define AK8963_ASTC         0x0C
@@ -230,147 +231,69 @@ HAL_StatusTypeDef MPU9255_Init(MPU9255_t *mpu) {
     return HAL_OK;
 }
 
-void calibrateMPU(float * gyroBias, float * accelBias) {
-  //https://github.com/sparkfun/MPU-9250_Breakout/blob/master/Libraries/Arduino/src/MPU9250.cpp
 
-  uint8_t data[12]; //accelerometer and gyro x, y, z data
-  uint16_t ii, packetCount, fifoCount;
-  int32_t gyro_bias[3] = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
+void gyroCal(MPU9255_t *mpu, float * gyBias) {
+  int i = 100;
+    //take sum of i values
+    for(int count = 0; count < i; count++) {
+      MPU9255_ReadGyro(mpu);
+      gyBias[0] += mpu->Gx;
+      gyBias[1] += mpu->Gy;
+      gyBias[2] += mpu->Gz;
+    }
+    //take average
+    gyBias[0] /= i;
+    gyBias[1] /= i;
+    gyBias[2] /= i;
 
-  //reset
-  I2C_WriteByte(hi2c, MPU9255_ADDR, PWR_MGMT_1, 0x80);
-  HAL_Delay(100);
-
-  //get time source
-  I2C_WriteByte(hi2c, MPU9255_ADDR, PWR_MGMT_1, 0x01);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, PWR_MGMT_2, 0x00);
-  HAL_Delay(200);
-
-  //configure device for bias calculation
-  I2C_WriteByte(hi2c, MPU9255_ADDR, INT_ENABLE, 0x00);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, FIFO_EN, 0x00);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, PWR_MGMT_1, 0x00);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, I2C_MST_CTRL, 0x00);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, USER_CTRL, 0x00);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, USER_CTRL, 0x0C);
-  HAL_Delay(15);
-
-  //config gyro and accelerometer for bias calibration
-  I2C_WriteByte(hi2c, MPU9255_ADDR, CONFIG, 0x01); //low pass filter set to 188Hz
-  I2C_WriteByte(hi2c, MPU9255_ADDR, SMPLRT_DIV, 0x00); //sample rate set to 1kHz
-  I2C_WriteByte(hi2c, MPU9255_ADDR, GYRO_CONFIG, 0x00); //gyro set to fullscale 250 degrees per sec, max sensitivity
-  I2C_WriteByte(hi2c, MPU9255_ADDR, ACCEL_CONFIG, 0x00); //set accelerometer to fullscale to 2 g, max sensitivity
-
-  uint16_t gyroSensitivity = 16; // 131 LSB/degrees/sec
-  uint16_t accelSensitivity = 2048; // 16384 LSB/g
-
-  //config fifo to capture accelerometer and gyro data
-  I2C_WriteByte(hi2c, MPU9255_ADDR, USER_CTRL, 0x40);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, FIFO_EN, 0x78);
-  HAL_Delay(40); //get 40 samples in 40 ms = 480 bytes
-
-  //turn off fifo sensor read
-  I2C_WriteByte(hi2c, MPU9255_ADDR, FIFO_EN, 0x00);
-  I2C_ReadBytes(hi2c, MPU9255_ADDR, FIFO_COUNTH, &data[0], 2);
-  fifoCount = ((uint16_t)data[0] << 8 | data[1]);
-  packetCount = fifoCount/12;
-
-  /*
-  For accelerometer:
-  Take magnitude of input x, y, z. (sqrt(x^2 + y^2 + z^2))
-  set x_cal to x/magnitude
-  set new x value to x - x_cal
-  */
-
-  for (ii = 0; ii < packetCount; ii++){
-    int16_t accel_temp[3] = {0, 0, 0}, gyro_temp[3] = {0, 0, 0};
-    accel_temp[0] = (int16_t)(((int16_t)data[0] << 8) | data[1]);
-    accel_temp[1] = (int16_t)(((int16_t)data[2] << 8) | data[3]);
-    accel_temp[2] = (int16_t)(((int16_t)data[4] << 8) | data[5]);
-    gyro_temp[0] = (int16_t)(((int16_t)data[6] << 8) | data[8]);
-    gyro_temp[1] = (int16_t)(((int16_t)data[8] << 8) | data[9]);
-    gyro_temp[2] = (int16_t)(((int16_t)data[10] << 8) | data[11]);
-
-    accel_bias[0] += (int32_t) accel_temp[0];
-    accel_bias[1] += (int32_t) accel_temp[1];
-    accel_bias[2] += (int32_t) accel_temp[2];
-    gyro_bias[0] += (int32_t) gyro_temp[0];
-    gyro_bias[1] += (int32_t) gyro_temp[1];
-    gyro_bias[2] += (int32_t) gyro_temp[2];
-  }
-  accel_bias[0] /= (int32_t) packetCount;
-  accel_bias[1] /= (int32_t) packetCount;
-  accel_bias[2] /= (int32_t) packetCount;
-  gyro_bias[0] /= (int32_t) packetCount;
-  gyro_bias[1] /= (int32_t) packetCount;
-  gyro_bias[2] /= (int32_t) packetCount;
-
-  if(accel_bias[2] > 0L) //remove gravity from accelerometer z axis calibration
-    accel_bias[2] -= (int32_t) accelSensitivity;
-  else
-    accel_bias[2] += (int32_t) accelSensitivity;
-
-  data[0] = (-gyro_bias[0]/4  >> 8) & 0xFF; // Divide by 4 to get 32.9 LSB per deg/s to conform to expected bias input format
-  data[1] = (-gyro_bias[0]/4)       & 0xFF; // Biases are additive, so change sign on calculated average gyro biases
-  data[2] = (-gyro_bias[1]/4  >> 8) & 0xFF;
-  data[3] = (-gyro_bias[1]/4)       & 0xFF;
-  data[4] = (-gyro_bias[2]/4  >> 8) & 0xFF;
-  data[5] = (-gyro_bias[2]/4)       & 0xFF;
-
-  I2C_WriteByte(hi2c, MPU9255_ADDR, XG_OFFSET_H, data[0]);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, XG_OFFSET_L, data[1]);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, YG_OFFSET_H, data[2]);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, YG_OFFSET_L, data[3]);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, ZG_OFFSET_H, data[4]);
-  I2C_WriteByte(hi2c, MPU9255_ADDR, ZG_OFFSET_L, data[5]);
-
-  gyroBias[0] = (float) gyro_bias[0]/(float) gyroSensitivity;
-  gyroBias[1] = (float) gyro_bias[1]/(float) gyroSensitivity;
-  gyroBias[2] = (float) gyro_bias[2]/(float) gyroSensitivity;
-
-  int32_t accel_bias_reg[3] = {0, 0, 0};
-  I2C_ReadBytes(hi2c, MPU9255_ADDR, XA_OFFSET_H, &data[0], 2);
-  accel_bias_reg[0] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
-  I2C_ReadBytes(hi2c, MPU9255_ADDR, YA_OFFSET_H, &data[0], 2);
-  accel_bias_reg[1] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
-  I2C_ReadBytes(hi2c, MPU9255_ADDR, ZA_OFFSET_H, &data[0], 2);
-  accel_bias_reg[2] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
-
-  uint32_t mask = 1ul;
-  uint8_t mask_bit[3] = {0, 0, 0};
-
-  for(ii = 0; ii < 3; ii++){
-      if((accel_bias_reg[ii] & mask))
-        mask_bit[ii] = 0x01;
-  }
-
-  // Construct total accelerometer bias, including calculated average accelerometer bias from above
- accel_bias_reg[0] -= (accel_bias[0]/8); // Subtract calculated averaged accelerometer bias scaled to 2048 LSB/g (16 g full scale)
- accel_bias_reg[1] -= (accel_bias[1]/8);
- accel_bias_reg[2] -= (accel_bias[2]/8);
-
- data[0] = (accel_bias_reg[0] >> 8) & 0xFF;
- data[1] = (accel_bias_reg[0])      & 0xFF;
- data[1] = data[1] | mask_bit[0]; // preserve temperature compensation bit when writing back to accelerometer bias registers
- data[2] = (accel_bias_reg[1] >> 8) & 0xFF;
- data[3] = (accel_bias_reg[1])      & 0xFF;
- data[3] = data[3] | mask_bit[1]; // preserve temperature compensation bit when writing back to accelerometer bias registers
- data[4] = (accel_bias_reg[2] >> 8) & 0xFF;
- data[5] = (accel_bias_reg[2])      & 0xFF;
- data[5] = data[5] | mask_bit[2]; // preserve temperature compensation bit when writing back to accelerometer bias registers
-
- I2C_WriteByte(hi2c, MPU9255_ADDR, XA_OFFSET_H, data[0]);
- I2C_WriteByte(hi2c, MPU9255_ADDR, XA_OFFSET_L, data[1]);
- I2C_WriteByte(hi2c, MPU9255_ADDR, YA_OFFSET_H, data[2]);
- I2C_WriteByte(hi2c, MPU9255_ADDR, YA_OFFSET_L, data[3]);
- I2C_WriteByte(hi2c, MPU9255_ADDR, ZA_OFFSET_H, data[4]);
- I2C_WriteByte(hi2c, MPU9255_ADDR, ZA_OFFSET_L, data[5]);
-
- accelBias[0] = (float)accel_bias[0]/(float)accelSensitivity;
- accelBias[1] = (float)accel_bias[1]/(float)accelSensitivity;
- accelBias[2] = (float)accel_bias[2]/(float)accelSensitivity;
-
+    //set bias as norm of each direction which will be subtracted from readings in main
+    for(int j = 0; j < 3; j++) {
+      gyBias[j] = sqrt(gyBias[j] * gyBias[j]);
+    }
 }
+
+void accelCal(float * accelBias) {
+  accelBias[0] = 0.03; //x bias
+  accelBias[1] = 0.01; //y bias
+  accelBias[2] = 1.07; //z bias
+}
+
+void magCal(MPU9255_t *mpu, float * magBias, float * magScale) {
+  uint16_t samples = 128; //1500 for 100Hz ODR and 128 for 8Hz ODR - 8Hz by default
+  int16_t magMax[3] = {-32767, -32767, -32767}, magMin[3] = {32767, 32767, 32767}, magTemp[3] = {0, 0, 0};
+
+  debug("Move magnetometer in figure 8 to calibrate");
+  HAL_Delay(2000);
+
+  //15s of data
+  for(int i = 0; i < samples; i++) {
+    MPU9255_ReadMag(mpu);
+    magTemp[0] = mpu->Mx;
+    magTemp[1] = mpu->My;
+    magTemp[2] = mpu->Mz;
+    for(int j = 0; j < 3; j++) {
+      if(magTemp[j] > magMax[j])
+        magMax[j] = magTemp[j];
+      if(magTemp[j] < magMin[j])
+        magMin[j] = magTemp[j];
+    }
+    HAL_Delay(135); //12 for 100Hz ODR and 135 for 8Hz - 8Hz by default
+  }
+  //Offset bias calculation
+  magBias[0] = (float)(magMax[0] + magMin[0]) / 2;
+  magBias[1] = (float)(magMax[1] + magMin[1]) / 2;
+  magBias[2] = (float)(magMax[2] + magMin[2]) / 2;
+
+  //Scale bias calculation
+  magScale[0] = (float)(magMax[0] + magMin[0]) / 2;
+  magScale[1] = (float)(magMax[1] + magMin[1]) / 2;
+  magScale[2] = (float)(magMax[2] + magMin[2]) / 2;
+   float avgRad = (magScale[0] + magScale[1] + magScale[2]) / 3;
+  magScale[0] = avgRad / magScale[0];
+  magScale[1] = avgRad / magScale[1];
+  magScale[2] = avgRad / magScale[2];
+}
+
 
 void MPU9255_ReadAccel(MPU9255_t* mpu) {
     uint8_t data[6];

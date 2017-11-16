@@ -3,6 +3,7 @@
 
 #include "stm32f7xx_hal.h"
 #include "i2c.h"
+#include "debug.h"
 
 
 typedef struct {
@@ -20,6 +21,9 @@ typedef struct {
 
 HAL_StatusTypeDef MPU9255_Init(MPU9255_t* mpu);
 
+void accelCal(float * accelBias);
+void gyroCal(MPU9255_t *mpu, float * gyBias);
+void magCal(MPU9255_t *mpu, float * magBias, float * magScale);
 void MPU9255_ReadAccel(MPU9255_t* mpu);
 void MPU9255_ReadGyro(MPU9255_t* mpu);
 void MPU9255_ReadMag(MPU9255_t* mpu);
