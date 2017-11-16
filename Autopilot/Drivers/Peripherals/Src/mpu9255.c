@@ -246,21 +246,17 @@ void gyroCal(MPU9255_t *mpu, float * gyBias) {
     gyBias[1] /= i;
     gyBias[2] /= i;
 
-    //set bias as norm of each direction which will be subtracted from readings in main
-    for(int j = 0; j < 3; j++) {
-      gyBias[j] = sqrt(gyBias[j] * gyBias[j]);
-    }
 }
 
 void accelCal(float * accelBias) {
   accelBias[0] = 0.03; //x bias
   accelBias[1] = 0.01; //y bias
-  accelBias[2] = 1.07; //z bias
+  accelBias[2] = 0.07; //z bias
 }
 
 void magCal(MPU9255_t *mpu, float * magBias, float * magScale) {
   uint16_t samples = 128; //1500 for 100Hz ODR and 128 for 8Hz ODR - 8Hz by default
-  int16_t magMax[3] = {-32767, -32767, -32767}, magMin[3] = {32767, 32767, 32767}, magTemp[3] = {0, 0, 0};
+  int16_t magMax[3] = {-32768, -32768, -32768}, magMin[3] = {32767, 32767, 32767}, magTemp[3] = {0, 0, 0};
 
   debug("Move magnetometer in figure 8 to calibrate");
   HAL_Delay(2000);
