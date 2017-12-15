@@ -61,10 +61,10 @@
 
 /* USER CODE BEGIN Includes */
 #include "debug.h"
-#include "eeprom.h"
-#include "Interchip_A.h"
-#include "altimeter.h"
-#include "mpu9255.h"
+// #include "eeprom.h"
+// #include "Interchip_A.h"
+// #include "altimeter.h"
+// #include "mpu9255.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -131,11 +131,14 @@ int main(void)
   MX_CRC_Init();
 
   /* USER CODE BEGIN 2 */
-  debug("\r\n\r\nStarting up...");
+  debug("\n\nStarting up...");
   debug("Compiled on %s at %s", __DATE__, __TIME__);
 
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
 
+  while (1) {}
+
+#if 0
   EEPROM_Init();
 
   MPU9255_t mpu;
@@ -159,6 +162,7 @@ int main(void)
 
     debug("Gyro bias: %f, %f, %f Accel Bias: %f, %f, %f", gyroBias[0], gyroBias[1], gyroBias[2], accelBias[0], accelBias[1], accelBias[2]);
   }
+#endif
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
