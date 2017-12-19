@@ -125,7 +125,7 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM10_Init();
   MX_TIM11_Init();
-  // MX_WWDG_Init();
+  //MX_WWDG_Init();
   MX_CRC_Init();
 
   /* USER CODE BEGIN 2 */
@@ -147,7 +147,7 @@ int main(void)
 
   interchipInit(dataTX, dataRX);
 
-  while(1){
+  /*while(1){
 
     Interchip_Update();
     HAL_Delay(1);
@@ -156,7 +156,9 @@ int main(void)
       dataTX->PWM[0] = -3000;
     }
     debug("Manual?: %d", dataTX->PWM[0]);
-  }
+  }*/
+
+  
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */

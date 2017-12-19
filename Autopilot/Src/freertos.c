@@ -51,12 +51,14 @@
 #include "task.h"
 #include "cmsis_os.h"
 
-/* USER CODE BEGIN Includes */
+/* USER CODE BEGIN Includes */     
 #include "debug.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
 osThreadId defaultTaskHandle;
+osThreadId AttitudeHandle;
+osThreadId PathHandle;
 
 /* USER CODE BEGIN Variables */
 
@@ -64,6 +66,8 @@ osThreadId defaultTaskHandle;
 
 /* Function prototypes -------------------------------------------------------*/
 void StartDefaultTask(void const * argument);
+void Attitude_Run(void const * argument);
+void Path_Run(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -97,6 +101,14 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
+  /* definition and creation of Attitude */
+  osThreadDef(Attitude, Attitude_Run, osPriorityRealtime, 0, 128);
+  AttitudeHandle = osThreadCreate(osThread(Attitude), NULL);
+
+  /* definition and creation of Path */
+  osThreadDef(Path, Path_Run, osPriorityNormal, 0, 128);
+  PathHandle = osThreadCreate(osThread(Path), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -116,6 +128,30 @@ void StartDefaultTask(void const * argument)
   
   vTaskDelete(defaultTaskHandle); // delete task when finished
   /* USER CODE END StartDefaultTask */
+}
+
+/* Attitude_Run function */
+__weak void Attitude_Run(void const * argument)
+{
+  /* USER CODE BEGIN Attitude_Run */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Attitude_Run */
+}
+
+/* Path_Run function */
+__weak void Path_Run(void const * argument)
+{
+  /* USER CODE BEGIN Path_Run */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Path_Run */
 }
 
 /* USER CODE BEGIN Application */
