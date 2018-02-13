@@ -9,7 +9,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -61,6 +61,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "debug.h"
+#include "VN100.h"
 #include "eeprom.h"
 /* USER CODE END Includes */
 
@@ -132,7 +133,15 @@ int main(void)
   debug("Compiled on %s at %s", __DATE__, __TIME__);
 
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-
+  unsigned long dataRX, dataTX;
+  dataTX = 5;
+  dataRX=0;
+  while(1){
+     //float imuData[3];
+     
+  HAL_SPI_TransmitReceive(&hspi2, (uint8_t *) &dataTX, (uint8_t *)dataRX,SPI_DATASIZE_16BIT, 100);
+     //VN100_SPI_GetRates(0, imuData);
+  }
   EEPROM_Init();
   /* USER CODE END 2 */
 
@@ -141,7 +150,7 @@ int main(void)
 
   /* Start scheduler */
   osKernelStart();
-
+  
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */

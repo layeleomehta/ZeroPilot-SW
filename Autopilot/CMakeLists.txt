@@ -18,6 +18,7 @@ include_directories(
         ../Common/Inc
         Drivers/CMSIS/Include
         Drivers/CMSIS/Device/ST/STM32F7xx/Include
+        Drivers/VN-100/inc
 )
 
 # Add ARM math directory for linker to find
