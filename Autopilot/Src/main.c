@@ -139,7 +139,7 @@ int main(void)
   while(1){
      //float imuData[3];
      
-  HAL_SPI_TransmitReceive(&hspi2, (uint8_t *) &dataTX, (uint8_t *)dataRX,SPI_DATASIZE_16BIT, 100);
+  HAL_SPI_TransmitReceive(&hspi2, (uint8_t *) &dataTX, (uint8_t *)&dataRX,SPI_DATASIZE_16BIT, 100);
      //VN100_SPI_GetRates(0, imuData);
   }
   EEPROM_Init();
