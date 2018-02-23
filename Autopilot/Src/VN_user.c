@@ -20,6 +20,7 @@
 #include "VN_lib.h"
 #include "stm32f7xx_hal.h"
 #include "spi.h"
+#include "debug.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -44,7 +45,11 @@
 * Return         : None
 *******************************************************************************/
 void VN_SPI_SetSS(unsigned char sensorID, VN_PinState state){
-
+  if(state==VN_PIN_HIGH){
+      HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin, GPIO_PIN_SET);
+  }else{
+  HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin, GPIO_PIN_RESET);
+  }
 }
 
 /*******************************************************************************
@@ -59,11 +64,12 @@ void VN_SPI_SetSS(unsigned char sensorID, VN_PinState state){
 * Output         : None
 * Return         : The data received on the SPI bus
 *******************************************************************************/
-unsigned long VN_SPI_SendReceive(unsigned long data){
+unsigned long VN_SPI_SendReceive(unsigned long dataTX){
 
 /* User code to send out 4 bytes over SPI goes here */
 unsigned long dataRX;
-  HAL_SPI_TransmitReceive(&hspi2, (uint8_t *) &data, (uint8_t *)dataRX,4, 100);
+debug("data: %d", dataTX);
+  HAL_SPI_TransmitReceive(&hspi2, (uint8_t *) &dataTX, (uint8_t *) &dataRX,4, 100);
   
   return dataRX;
 }
@@ -98,7 +104,7 @@ void VN_Delay(unsigned long delay_uS){
    so make sure you check your compiler documentation before attempting to
    write your own. */
   unsigned long i;
-  for(i=delay_uS*10; i--; );
+  for(i=delay_uS*33; i--; );
 }
 
 /******************* (C) COPYRIGHT 2009 VectorNav Technologies *****************

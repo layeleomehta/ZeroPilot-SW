@@ -17,6 +17,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "VN100.h"
 #include "VN_lib.h"
+#include "debug.h"
 
 #ifdef _VN100
 /* Private typedef -----------------------------------------------------------*/
@@ -60,6 +61,9 @@ VN100_SPI_Packet* VN100_SPI_ReadRegister(unsigned char sensorID, unsigned char r
   VN_SPI_SetSS(sensorID, VN_PIN_LOW);
 
   /* Send request */
+  uint8_t *test = malloc(sizeof(uint8_t)*4);
+  *test = VN_BYTES2WORD(0, 0, regID, VN100_CmdID_ReadRegister);
+  
   VN_SPI_SendReceive(VN_BYTES2WORD(0, 0, regID, VN100_CmdID_ReadRegister));
   VN_SPI_SendReceive(0);
 
@@ -76,7 +80,7 @@ VN100_SPI_Packet* VN100_SPI_ReadRegister(unsigned char sensorID, unsigned char r
   for(i=0;i<=regWidth;i++){
     *(((unsigned long*)&VN_SPI_LastReceivedPacket) + i) = VN_SPI_SendReceive(0);
   }
-
+  return 0;
   /* Pull SS line high to end SPI transaction */
   VN_SPI_SetSS(sensorID, VN_PIN_HIGH);  
 
@@ -709,6 +713,7 @@ VN100_SPI_Packet* VN100_SPI_GetRates(unsigned char sensorID, float* rates){
   VN100_SPI_ReadRegister(sensorID, VN100_REG_GYR, 3);
   
   /* Get Angular Rates */
+  return 0;
   for(i=0;i<3;i++){
     rates[i] = VN_SPI_LastReceivedPacket.Data[i].Float;
   }

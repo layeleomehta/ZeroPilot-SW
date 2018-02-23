@@ -133,14 +133,13 @@ int main(void)
   debug("Compiled on %s at %s", __DATE__, __TIME__);
 
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-  unsigned long dataRX, dataTX;
-  dataTX = 5;
-  dataRX=0;
+  HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin, GPIO_PIN_SET);
+
   while(1){
-     //float imuData[3];
-     
-  HAL_SPI_TransmitReceive(&hspi2, (uint8_t *) &dataTX, (uint8_t *)&dataRX,SPI_DATASIZE_16BIT, 100);
-     //VN100_SPI_GetRates(0, imuData);
+    float imuData[3];
+    VN100_SPI_GetRates(0, imuData);
+   // debug("data");//: %f, %f, %f",imuData[0],imuData[1],imuData[2]);
+    HAL_Delay(10);
   }
   EEPROM_Init();
   /* USER CODE END 2 */

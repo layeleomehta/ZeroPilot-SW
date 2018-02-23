@@ -79,6 +79,8 @@
 #define PW_GOOD_EXT_GPIO_Port GPIOE
 #define PW_GOOD_INT_Pin GPIO_PIN_15
 #define PW_GOOD_INT_GPIO_Port GPIOE
+#define SPI2_NSS_Pin GPIO_PIN_12
+#define SPI2_NSS_GPIO_Port GPIOB
 #define USONIC_IC_Pin GPIO_PIN_8
 #define USONIC_IC_GPIO_Port GPIOB
 #define USONIC_OC_Pin GPIO_PIN_9
