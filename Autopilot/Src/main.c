@@ -136,9 +136,9 @@ int main(void)
   HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin, GPIO_PIN_SET);
 
   while(1){
-    float imuData[3];
+    float imuData[3] = {0,0,0};
     VN100_SPI_GetRates(0, imuData);
-   // debug("data");//: %f, %f, %f",imuData[0],imuData[1],imuData[2]);
+    debug("data: %f, %f, %f",imuData[0],imuData[1],imuData[2]);
     HAL_Delay(10);
   }
   EEPROM_Init();
