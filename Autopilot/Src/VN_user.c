@@ -68,7 +68,7 @@ unsigned long VN_SPI_SendReceive(unsigned long dataTX){
 
 /* User code to send out 4 bytes over SPI goes here */
 unsigned long dataRX;
-debug("data: %d", dataTX);
+//debug("data: %d", dataTX);
   HAL_SPI_TransmitReceive(&hspi2, (uint8_t *) &dataTX, (uint8_t *) &dataRX,4, 100);
   
   return dataRX;

@@ -137,9 +137,12 @@ int main(void)
 
   while(1){
     float imuData[3] = {0,0,0};
+    char model[12] = {};
+    VN100_SPI_GetModel(0, model);
     VN100_SPI_GetRates(0, imuData);
-    debug("data: %f, %f, %f",imuData[0],imuData[1],imuData[2]);
+    debug("data: %s",model);
     HAL_Delay(10);
+    VN100_SPI_Reset(0);
   }
   EEPROM_Init();
   /* USER CODE END 2 */

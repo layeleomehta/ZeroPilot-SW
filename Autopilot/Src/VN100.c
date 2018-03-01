@@ -46,7 +46,7 @@ VN100_SPI_Packet VN_SPI_LastReceivedPacket = {0, 0, 0, 0, {0}};
 /*******************************************************************************
 * Function Name  : VN100_SPI_ReadRegister(unsigned char sensorID, unsigned char regID, unsigned char regWidth)
 * Description    : Read the register with the ID regID on a VN-100 sensor
-*                  using the SPI interface.                                     
+*                  using the SPI interface.
 * Input          : sensorID -> The sensor to get the requested data from.
 *                : regID -> The requested register ID number
 *                : regWidth -> The width of the requested register in 32-bit words
@@ -80,10 +80,9 @@ VN100_SPI_Packet* VN100_SPI_ReadRegister(unsigned char sensorID, unsigned char r
   for(i=0;i<=regWidth;i++){
     *(((unsigned long*)&VN_SPI_LastReceivedPacket) + i) = VN_SPI_SendReceive(0);
   }
-  return 0;
+
   /* Pull SS line high to end SPI transaction */
   VN_SPI_SetSS(sensorID, VN_PIN_HIGH);  
-
 
   /* Return Error code */
   return &VN_SPI_LastReceivedPacket;  
@@ -713,7 +712,6 @@ VN100_SPI_Packet* VN100_SPI_GetRates(unsigned char sensorID, float* rates){
   VN100_SPI_ReadRegister(sensorID, VN100_REG_GYR, 3);
   
   /* Get Angular Rates */
-  return 0;
   for(i=0;i<3;i++){
     rates[i] = VN_SPI_LastReceivedPacket.Data[i].Float;
   }
