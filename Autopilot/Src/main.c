@@ -63,6 +63,7 @@
 #include "debug.h"
 #include "VN100.h"
 #include "eeprom.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -135,14 +136,19 @@ int main(void)
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin, GPIO_PIN_SET);
 
+  char model[12];
+  VN100_SPI_GetModel(0, model);
+  //if (strcmp(model, "VN-100T-SMD") == 0 || strcmp(model, "VN-100T") == 0){
+    debug("%s",model);
+  //}
+  float *imuData = malloc(sizeof(float)*3);
   while(1){
-    float imuData[3] = {0,0,0};
-    char model[12] = {};
-    VN100_SPI_GetModel(0, model);
-    VN100_SPI_GetRates(0, imuData);
-    debug("data: %s",model);
-    HAL_Delay(10);
-    VN100_SPI_Reset(0);
+    
+    VN100_SPI_GetYPR(0, &imuData[0], &imuData[1], &imuData[2]);
+    //VN100_SPI_GetRates(0, imuData);
+    debug("d:%d, %d, %d", (int)(imuData[0]*10), (int)(imuData[1]*10), (int)(imuData[2]*10))
+    HAL_Delay(100);
+    //VN100_SPI_Reset(0);
   }
   EEPROM_Init();
   /* USER CODE END 2 */
