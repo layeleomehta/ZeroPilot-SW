@@ -61,7 +61,7 @@ osThreadId defaultTaskHandle;
 osThreadId InterchipHandle;
 
 /* USER CODE BEGIN Variables */
-
+uint8_t uart3_buf[UART3_BUF_SIZE];
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -119,6 +119,7 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN StartDefaultTask */
   // this function will (eventually) start all the threads for the autopilot
+  HAL_UART_Receive_IT(&huart3, (uint8_t*)uart3_buf, UART3_BUF_SIZE); // Initiate UART receive transfer
 
   vTaskDelete(defaultTaskHandle); // delete task when finished
   /* USER CODE END StartDefaultTask */

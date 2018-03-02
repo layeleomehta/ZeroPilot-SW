@@ -12,6 +12,8 @@ extern "C" {
 #define DBG_UART 0
 #define DBG_ITM  1
 
+#define UART3_BUF_SIZE 100
+
 #ifndef DBG_TYPE
 #define DBG_TYPE DBG_UART
 #endif
@@ -33,5 +35,7 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+void processCmd(char* cmd);
 
 #endif /* DEBUG_H */

@@ -11,3 +11,7 @@ int _write(int file, char *ptr, int len) {
 #endif
     return len;
 }
+
+void processCmd(char* cmd) {
+    printf("%s\r\n", cmd);
+}

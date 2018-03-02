@@ -37,7 +37,9 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN 0 */
+#include "debug.h"
 
+extern uint8_t uart3_buf[UART3_BUF_SIZE];
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -291,7 +293,28 @@ void USART3_IRQHandler(void)
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
+  if (huart3.RxXferCount == 1) {
+      // buf is almost full - reset transfer
+      memset(uart3_buf, 0, sizeof(uart3_buf));
+      huart3.RxXferCount = UART3_BUF_SIZE;
+      huart3.pRxBuffPtr = uart3_buf;
+  }
 
+  if (uart3_buf[UART3_BUF_SIZE - huart3.RxXferCount - 1] == '\r') {
+      // end of line char detected - process cmd
+      processCmd((char*)uart3_buf);
+      // reset transfer
+      memset(uart3_buf, 0, sizeof(uart3_buf));
+      huart3.RxXferCount = UART3_BUF_SIZE;
+      huart3.pRxBuffPtr = uart3_buf;
+  }
+  else if (uart3_buf[UART3_BUF_SIZE - huart3.RxXferCount - 1] == '\b') {
+      // backspace char detected - decrement BuffPtr
+      uart3_buf[UART3_BUF_SIZE - huart3.RxXferCount - 1] = 0;
+      uart3_buf[UART3_BUF_SIZE - huart3.RxXferCount - 2] = 0;
+      huart3.RxXferCount = (huart3.RxXferCount == 100) ? 100 : huart3.RxXferCount + 2;
+      huart3.pRxBuffPtr = huart3.pRxBuffPtr - 2;
+  }
   /* USER CODE END USART3_IRQn 1 */
 }
 
