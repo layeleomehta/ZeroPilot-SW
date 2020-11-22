@@ -11,20 +11,24 @@
 #include "stm32f0xx_hal_iwdg.h"
 #include "safety_controller.hpp"
 
+/*
 char buffer[200]; //buffer for printing
 StatusCode UARTinit();
 StatusCode setupPWM(PWMManager &manager);
 StatusCode setupPPM(PPMChannel &ppm);
 void print_ppm_state(char *buffer, PPMChannel &ppm);
+*/
+static void MX_GPIO_Init(void);
 
-IWDG_HandleTypeDef hiwdg2; //HAL Watchdog Decleration
+//IWDG_HandleTypeDef hiwdg2; //HAL Watchdog Decleration
 
 
 int main() {
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
 	HAL_Init();
-	HAL_IWDG_Init(&hiwdg2); //Start the watchdog
-
+	MX_GPIO_Init();
+	//HAL_IWDG_Init(&hiwdg2); //Start the watchdog
+	/*
 	StatusCode status;
 
 	//set clock sources
@@ -51,17 +55,20 @@ int main() {
 	led1.set_state(GPIO_STATE_LOW);
 	led2.set_state(GPIO_STATE_LOW);
 
-	safety_controller_init();
+	//safety_controller_init();
+	*/
 
 	while (true) 
 	{
-		led1.set_state(GPIO_STATE_HIGH);
-		led2.set_state(GPIO_STATE_HIGH);
-		safety_run(hiwdg2, ppm);
+		HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_5);
+		HAL_Delay(50);
+		//led1.set_state(GPIO_STATE_HIGH);
+		//led2.set_state(GPIO_STATE_HIGH);
+		//safety_run(hiwdg2, ppm);
 
 	}
 }
-
+/*
 void print_ppm_state(char *buffer, PPMChannel &ppm) {
 	int len = sprintf(buffer,
 					  "CH1 (p, us): %d %lu\r\nCH2 (p, us): %d %lu\r\n"
@@ -130,4 +137,23 @@ StatusCode setupPPM(PPMChannel &ppm)
 	StatusCode status = ppm.setup();
 	ppm.setTimeout(200);
 	return status;
+}
+*/
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
+  
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 }
