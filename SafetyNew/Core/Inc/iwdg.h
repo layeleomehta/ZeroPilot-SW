@@ -19,12 +19,13 @@
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __iwdg_H
 #define __iwdg_H
+
 #ifdef __cplusplus
  extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include <main.hpp>
 
 /* USER CODE BEGIN Includes */
 

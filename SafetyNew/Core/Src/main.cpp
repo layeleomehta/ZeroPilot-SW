@@ -18,7 +18,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include <main.hpp>
 #include "i2c.h"
 #include "iwdg.h"
 #include "spi.h"
@@ -90,17 +90,17 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
-  MX_IWDG_Init();
-  MX_SPI1_Init();
-  MX_TIM1_Init();
-  MX_TIM3_Init();
-  MX_TIM14_Init();
-  MX_TIM15_Init();
-  MX_TIM16_Init();
-  MX_TIM17_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
+  //MX_I2C1_Init();
+  //MX_IWDG_Init();
+  //MX_SPI1_Init();
+  //MX_TIM1_Init();
+  //MX_TIM3_Init();
+  //MX_TIM14_Init();
+  //MX_TIM15_Init();
+  //MX_TIM16_Init();
+  //MX_TIM17_Init();
+  //MX_USART1_UART_Init();
+  //MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -110,6 +110,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+	 HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_5);
+	 HAL_Delay(100);
 
     /* USER CODE BEGIN 3 */
   }

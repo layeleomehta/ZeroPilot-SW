@@ -19,12 +19,13 @@
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __i2c_H
 #define __i2c_H
+
 #ifdef __cplusplus
  extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include <main.hpp>
 
 /* USER CODE BEGIN Includes */
 
