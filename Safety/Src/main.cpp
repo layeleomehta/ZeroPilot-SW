@@ -1,4 +1,5 @@
 #include "main.hpp"
+
 #include "Debug.hpp"
 #include "GPIO.hpp"
 #include "Clock.hpp"
@@ -7,57 +8,68 @@
 #include "PPM.hpp"
 #include "Watchdog.hpp"
 #include "Profiler.h"
+
 #include "stm32f0xx_hal.h"
 #include "stm32f0xx_hal_iwdg.h"
 #include "safety_controller.hpp"
 
+
 char buffer[200]; //buffer for printing
-StatusCode UARTinit();
 StatusCode setupPWM(PWMManager &manager);
 StatusCode setupPPM(PPMChannel &ppm);
 void print_ppm_state(char *buffer, PPMChannel &ppm);
 
 IWDG_HandleTypeDef hiwdg2; //HAL Watchdog Decleration
+extern UART_HandleTypeDef huart2;
 
+
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART2_UART_Init(void);
+void Error_Handler(void);
+void callMXfunctions();
 
 int main() {
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
 	HAL_Init();
-	HAL_IWDG_Init(&hiwdg2); //Start the watchdog
-
+	//HAL_IWDG_Init(&hiwdg2); //Start the watchdog
+	SystemClock_Config();
+	callMXfunctions();
+	
+	
 	StatusCode status;
-
-	//set clock sources
-	initialize_system_clock();
-	gpio_init();
-
 
 	PWMManager &manager = PWMManager::getInstance();
 	status = setupPWM(manager);
 	info("PWMSetup", status);
-
-	status = UARTinit();
 
 
 	PPMChannel ppm;
 	status = setupPPM(ppm);
 
 	info("PPM Setup", status);
-
+	
+	/*
 	GPIOPin led1 = GPIOPin(LED1_GPIO_PORT, LED1_GPIO_PIN, GPIO_OUTPUT, GPIO_STATE_LOW, GPIO_RES_NONE);
 	GPIOPin led2 = GPIOPin(LED2_GPIO_PORT, LED2_GPIO_PIN, GPIO_OUTPUT, GPIO_STATE_LOW, GPIO_RES_NONE);
 	GPIOPin led3 = GPIOPin(LED3_GPIO_PORT, LED3_GPIO_PIN, GPIO_OUTPUT, GPIO_STATE_LOW, GPIO_RES_NONE);
 	GPIOPin buzzer = GPIOPin(BUZZER_GPIO_PORT, BUZZER_GPIO_PIN, GPIO_OUTPUT, GPIO_STATE_LOW, GPIO_RES_NONE);
-	led1.set_state(GPIO_STATE_LOW);
-	led2.set_state(GPIO_STATE_LOW);
-
+	led1.set_state(GPIO_STATE_HIGH);
+	led2.set_state(GPIO_STATE_HIGH);
+	*/
 	safety_controller_init();
 
 	while (true) 
 	{
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10);
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_11);
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_12);
+		HAL_Delay(500);
+		/*
 		led1.set_state(GPIO_STATE_HIGH);
 		led2.set_state(GPIO_STATE_HIGH);
-		safety_run(hiwdg2, ppm);
+		*/
+		//safety_run(hiwdg2, ppm);
 
 	}
 }
@@ -80,29 +92,6 @@ void print_ppm_state(char *buffer, PPMChannel &ppm) {
 	sprintf(&buffer[len], "PPM Disconnected? : %d\r\n", ppm.is_disconnected(get_system_time()));
 }
 
-StatusCode UARTinit()
-{
-	UARTSettings port_settings;
-	port_settings.rx_inverted = false;
-	port_settings.timeout = 50;
-	port_settings.stop_bits = 1;
-	port_settings.cts_rts = false;
-	port_settings.parity = UART_NO_PARITY; //double check this?
-	port_settings.baudrate = 115200;
-
-	UARTPort port = UARTPort(UART_PORT2, port_settings);
-
-	StatusCode status = port.setup();
-	info("UART2 Setup", status);
-	status = port.setupDMA(0, 24);
-	info("UART2 DMA", status);
-
-	uint8_t ubuffer[24];
-
-	size_t bytes_read = 100;
-
-	return status;
-}
 
 StatusCode setupPWM(PWMManager &manager)
 {
@@ -130,4 +119,129 @@ StatusCode setupPPM(PPMChannel &ppm)
 	StatusCode status = ppm.setup();
 	ppm.setTimeout(200);
 	return status;
+}
+
+
+void SystemClock_Config(void)
+{
+
+ RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI
+                              |RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
+  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
+  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_SYSCLK, RCC_MCODIV_1);
+
+ 
+}
+
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PC10 PC11 PC12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+}
+
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+
+  /* USER CODE END Error_Handler_Debug */
+}
+
+void callMXfunctions()
+{
+	MX_GPIO_Init();
+	MX_USART2_UART_Init();
+	/*
+  	MX_I2C1_Init();
+  	MX_IWDG_Init();
+  	MX_SPI1_Init();
+  	MX_TIM1_Init();
+  	MX_TIM3_Init();
+  	MX_TIM14_Init();
+  	MX_TIM15_Init();
+  	MX_TIM16_Init();
+  	MX_TIM17_Init();
+  	MX_USART1_UART_Init();
+  	
+	  */
+}
+
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
 }
