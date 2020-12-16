@@ -96,6 +96,7 @@ int main(void) {
 
 	size_t bytes_read = 100;
 
+
 	uint64_t time;
 	while (1) {
 		time = get_system_time_us();
